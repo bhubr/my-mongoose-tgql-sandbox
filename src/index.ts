@@ -1,4 +1,6 @@
-const { ApolloServer, gql } = require('apollo-server');
+import { ApolloServer, gql } from 'apollo-server';
+import mongoose from 'mongoose';
+import Book from './models/book.model';
 
 // A schema is a collection of type definitions (hence "typeDefs")
 // that together define the "shape" of queries that are executed against
@@ -13,6 +15,10 @@ const typeDefs = gql`
 
   type Query {
     books: [Book]
+  }
+
+  type Mutation {
+    addBook(title: String, author: String, cover: String): Book
   }
 `;
 
@@ -35,15 +41,31 @@ const books = [
 // schema. This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
-    books: () => books,
+    books: async () => {
+      const books = await Book.find()
+      return books
+    },
   },
+  Mutation: {
+    addBook: async (...args) => {
+      const newBook = await Book.create(args[1]);
+      return newBook
+    }
+  }
 };
 
 // The ApolloServer constructor requires two parameters: your schema
 // definition and your set of resolvers.
 const server = new ApolloServer({ typeDefs, resolvers });
 
-// The `listen` method launches a web server.
-server.listen().then(({ url }: { url: string }) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
+mongoose.connect('mongodb://localhost:27017/books', { autoIndex: false })
+  .then(async conn => {
+    // console.log()
+
+    // The `listen` method launches a web server.
+    server.listen().then(({ url }: { url: string }) => {
+      console.log(`🚀  Server ready at ${url}`);
+    });
+
+  });
+  
